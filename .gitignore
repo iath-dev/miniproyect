@@ -1,0 +1,5 @@
+# Exclude .vagrant directories from all subdirectories
+**/.vagrant/
+
+# Exclude .box files from all subdirectories
+**/*.box

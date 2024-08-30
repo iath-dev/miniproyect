@@ -1,0 +1,122 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Ansible IP Addresses
+      debug:
+        var: ansible_all_ipv4_addresses
+
+    - name: Ansible IP Addresses - Default
+      debug:
+        var: ansible_default_ipv4
+
+    - name: Update
+      apt:
+        update_cache: yes
+      async: 600
+      poll: 10
+
+    - name: Upgrade
+      apt:
+        upgrade: yes
+      async: 600
+      poll: 10
+
+    - name: Install Consul
+      apt:
+        name: consul
+        state: present
+        update_cache: yes
+
+    - name: Copy Service Config to systemd
+      template:
+        src: templates/consul-server.service.j2
+        dest: /etc/systemd/system/consul.service
+
+    - name: Restart Systemd and Enable Consul
+      systemd:
+        daemon_reload: yes
+        name: consul
+        enabled: yes
+        state: started
+
+    - name: Install HAProxy
+      apt:
+        name: haproxy
+        state: present
+        update_cache: yes
+
+    - name: Enable HAProxy
+      systemd:
+        daemon_reload: yes
+        name: haproxy
+        enabled: yes
+        state: started
+
+    - name: HAProxy Config
+      blockinfile:
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        path: /etc/haproxy/haproxy.cfg
+        block: |
+          defaults
+            timeout connect 5s
+            timeout client 1m
+            timeout server 1m
+
+          frontend stats
+            bind *:1936
+            mode http
+            stats uri /
+            stats show-legends
+
+          frontend http_front
+            bind *:80
+            default_backend http_back
+
+          backend http_back
+            balance roundrobin
+            stats enable
+            stats auth admin:admin
+            stats uri /haproxy?stats
+
+            server webapp1 192.168.75.6:80 check
+            server webapp2 192.168.75.7:80 check
+
+          resolvers consul
+            nameserver consul 127.0.0.1:8600
+            accepted_payload_size 8192
+            hold valid 5s
+
+    # - name: HAProxy Config
+    #   blockinfile:
+    #     marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    #     path: /etc/haproxy/haproxy.cfg
+    #     block: |
+    #       defaults
+    #         timeout connect 5s
+    #         timeout client 1m
+    #         timeout server 1m
+
+    #       frontend stats
+    #         bind *:1936
+    #         mode http
+    #         stats uri /
+    #         stats show-legends
+
+    #       frontend http_front
+    #         bind *:80
+    #         default_backend http_back
+
+    #       backend http_back
+    #         balance roundrobin
+    #         server-template mywebapp 5 _web._tcp.service.consul resolvers consul resolve-opts allow-dup-ip resolve-prefer ipv4 check
+
+    #       resolvers consul
+    #         nameserver consul 127.0.0.1:8600
+    #         accepted_payload_size 8192
+    #         hold valid 5s
+
+    - name: Restart HAProxy
+      systemd:
+        name: haproxy
+        state: restarted

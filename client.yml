@@ -1,0 +1,57 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Ansible IP Addresses
+      debug:
+        var: ipv4
+
+    - name: Ansible IP Addresses - Default
+      debug:
+        var: ansible_default_ipv4
+
+    - name: Update
+      apt:
+        update_cache: yes
+      async: 600
+      poll: 10
+
+    - name: Upgrade
+      apt:
+        upgrade: yes
+      async: 600
+      poll: 10
+
+    - name: Install Apache
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+
+    - name: Ubicar pagina - index.html
+      template:
+        src: templates/webpage.html.j2
+        dest: /var/www/html/index.html
+
+    - name: Install Consul
+      apt:
+        name: consul
+        state: present
+        update_cache: yes
+
+    - name: Configurar Web Service - Consul
+      template:
+        src: templates/apache.json.j2
+        dest: /etc/consul.d/apache.json
+
+    - name: Copy Service Config to systemd
+      template:
+        src: templates/consul-node.service.j2
+        dest: /etc/systemd/system/consul.service
+
+    - name: Restart Systemd and Enable Consul
+      systemd:
+        daemon_reload: yes
+        name: consul
+        enabled: yes
+        state: started

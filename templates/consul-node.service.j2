@@ -1,0 +1,14 @@
+[Unit]
+Description=Consul Agent
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=consul agent -enable-script-checks -bind={{ ipv4 }} -client=0.0.0.0 -join=192.168.75.6 -data-dir=. -config-dir=/etc/consul.d -log-level=info
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+ExecStartPost=/bin/sleep 10
+
+[Install]
+WantedBy=multi-user.target
