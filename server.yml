@@ -40,6 +40,11 @@
         enabled: yes
         state: started
 
+    - name: Configurar la pagina de error de HAProxy
+      template:
+        src: templates/error.html.j2
+        dest: /etc/haproxy/errors/503.http
+
     - name: Install HAProxy
       apt:
         name: haproxy
@@ -62,6 +67,7 @@
             timeout connect 5s
             timeout client 1m
             timeout server 1m
+            errorfile 503 /etc/haproxy/errors/503.http
 
           frontend stats
             bind *:1936
