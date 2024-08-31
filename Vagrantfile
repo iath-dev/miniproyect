@@ -4,7 +4,7 @@
 Vagrant.configure("2") do |config|
 
   config.vm.box = "bento/ubuntu-22.04"
-  config.vm.boot_timeout = 300  # Esperar 5 minutos
+  config.vm.boot_timeout = 600  # Esperar 5 minutos
 
   config.vm.define :n1 do |node|
     node.vm.hostname = "n1"
